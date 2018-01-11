@@ -1,6 +1,8 @@
 package rmq
 
-import "fmt"
+import (
+	"fmt"
+)
 
 type Cleaner struct {
 	connection *redisConnection
@@ -11,7 +13,11 @@ func NewCleaner(connection *redisConnection) *Cleaner {
 }
 
 func (cleaner *Cleaner) Clean() error {
-	connectionNames := cleaner.connection.GetConnections()
+	connectionNames, err := cleaner.connection.GetConnections()
+	if err != nil {
+		return err
+	}
+
 	for _, connectionName := range connectionNames {
 		connection := cleaner.connection.hijackConnection(connectionName)
 		if connection.Check() {
@@ -27,17 +33,21 @@ func (cleaner *Cleaner) Clean() error {
 }
 
 func (cleaner *Cleaner) CleanConnection(connection *redisConnection) error {
-	queueNames := connection.GetConsumingQueues()
+	queueNames, err := connection.GetConsumingQueues()
+	if err != nil {
+		return err
+	}
+
 	for _, queueName := range queueNames {
 		queue, ok := connection.OpenQueue(queueName).(*redisQueue)
 		if !ok {
-			return fmt.Errorf("rmq cleaner failed to open queue %s", queueName)
+			return fmt.Errorf("cast Queue->redisQueue failed")
 		}
 
 		cleaner.CleanQueue(queue)
 	}
 
-	if !connection.Close() {
+	if connection.Close() != nil {
 		return fmt.Errorf("rmq cleaner failed to close connection %s", connection)
 	}
 

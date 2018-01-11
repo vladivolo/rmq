@@ -17,20 +17,20 @@ func (queue *TestQueue) String() string {
 	return queue.name
 }
 
-func (queue *TestQueue) Publish(payload string) bool {
+func (queue *TestQueue) Publish(payload string) error {
 	queue.LastDeliveries = append(queue.LastDeliveries, payload)
-	return true
+	return nil
 }
 
-func (queue *TestQueue) PublishBytes(payload []byte) bool {
+func (queue *TestQueue) PublishBytes(payload []byte) error {
 	return queue.Publish(string(payload))
 }
 
 func (queue *TestQueue) SetPushQueue(pushQueue Queue) {
 }
 
-func (queue *TestQueue) StartConsuming(prefetchLimit int, pollDuration time.Duration) bool {
-	return true
+func (queue *TestQueue) StartConsuming(prefetchLimit int, pollDuration time.Duration) error {
+	return nil
 }
 
 func (queue *TestQueue) StopConsuming() bool {
