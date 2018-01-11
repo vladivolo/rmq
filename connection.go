@@ -6,7 +6,6 @@ import (
 	"gopkg.in/redis.v3"
 	_ "log"
 	"strings"
-	"sync/atomic"
 	"time"
 )
 
@@ -17,7 +16,6 @@ type Connection interface {
 	OpenQueue(name string) Queue
 	CollectStats(queueList []string) Stats
 	GetOpenQueues() ([]string, error)
-	Active() bool
 }
 
 // Connection is the entry point. Use a connection to access queues, consumers and deliveries
@@ -44,7 +42,6 @@ func OpenConnectionWithRedisClient(tag string, redisClient *redis.Client) (*redi
 	}
 
 	if err := connection.updateHeartbeat(); err != nil { // checks the connection
-		//atomic.StoreInt32(&connection.status, 1)
 		return nil, fmt.Errorf("rmq connection failed to update heartbeat %s", connection)
 	}
 
@@ -76,12 +73,6 @@ func (connection *redisConnection) OpenQueue(name string) Queue {
 	connection.redisClient.SAdd(queuesKey, name)
 
 	return newQueue(name, connection.Name, connection.queuesKey, connection.redisClient)
-}
-
-func (connection *redisConnection) Active() bool {
-	a := atomic.LoadInt32(&connection.status)
-
-	return a == 0
 }
 
 func (connection *redisConnection) CollectStats(queueList []string) Stats {
@@ -159,14 +150,12 @@ func (connection *redisConnection) GetConsumingQueues() ([]string, error) {
 func (connection *redisConnection) heartbeat() {
 	for {
 		if connection.updateHeartbeat() != nil {
-			//atomic.StoreInt32(&connection.status, 1)
 			// log.Printf("rmq connection failed to update heartbeat %s", connection)
 		}
 
 		time.Sleep(time.Second)
 
 		if connection.heartbeatStopped {
-			//atomic.StoreInt32(&connection.status, 1)
 			// log.Printf("rmq connection stopped heartbeat %s", connection)
 			return
 		}
